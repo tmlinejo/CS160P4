@@ -1,8 +1,8 @@
 // Thomas Milne-Jones
 // tmlinejo
 // 1396046
-// prog3
-// 05/15/2015
+// prog4
+// 05/29/2015
 // main.js
 // displays two copies of a 3D model from a coor and poly file with individual mouse interactivity
 // left click: translate, middle click: scale, right click: rotate
