@@ -47,6 +47,7 @@ var canvas;
 var gl;
 
 var examineInterval
+var lookInterval
 
 var maxNumVertices  = 1044484;
 var index = 0;
@@ -309,11 +310,9 @@ window.onload = function init() {
     window.addEventListener("keydown", function(event)
     {
         if(event.keyCode === 80) // press P to examine
-        {   
             examineInterval = setInterval(examine(), 100)
-        }
         if(event.keyCode === 81) // press Q to look around
-            lookAround();
+            lookInterval = setInterval(lookAround(), 100)
         if(event.keyCode === 67) // press C for camera mode
             modeFlag = 1
         if(event.keyCode === 86) // press V for viewer mode
@@ -321,8 +320,10 @@ window.onload = function init() {
     });
     window.addEventListener("keyup", function(event)
     {
-        if(event.keyCode === 80)
+        if(event.keyCode === 80) // release P to stop examining
             window.clearInterval(examineInterval)
+        if(event.keyCode === 81) // press Q to look around
+            window.clearInterval(lookInterval)
     });
 } // main
 
@@ -344,7 +345,12 @@ function examine()
 
 function lookAround()
 {
-    alert()
+    for(index=0; index<coordList[0].length; index++)
+    {
+        coordList[0][index] = rotateZ(coordList[0][index], Math.PI/36)
+        coordList[1][index] = rotateZ(coordList[1][index], Math.PI/36)
+    }
+    rerender(true, true)
 }
 
 function getCenter(pointList)
