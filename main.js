@@ -23,7 +23,7 @@ var inputCoor = SHARK_COORD
 var inputPoly = SHARK_POLY
 
 var viewDistance = 2
-var eyeVector = normalize([1,1,1])
+var eyeVector = normalize([0,0,1])
 var lightSource = normalize([1,1,1])
 var glossiness = 20
 
@@ -192,6 +192,7 @@ window.onload = function init() {
     var rotating = false
     var scaling = false
     var prevx, prevy
+    var modeFlag = 0
     
     canvas.addEventListener("contextmenu", function(event) { event.preventDefault();}); // prevent right click menu
     canvas.addEventListener("mousewheel", function(event) { selectedShark = (selectedShark+1)%2}); // switch active shark
@@ -205,76 +206,104 @@ window.onload = function init() {
             scaling = true
         if(event.button === 2)
             rotating = true
-        prevx = (window.pageXOffset + event.clientX - box.left)/canvas.width;
-        prevy = (window.pageYOffset + event.clientY - box.top)/canvas.height;
+        prevx = event.clientX
+        prevy = event.clientY
     } );
     canvas.addEventListener("mousemove", function (event2)
     {
-        if(dragging)
+        var movex = (event.clientX - prevx) / canvas.width
+        var movey = (event.clientY - prevy) / canvas.height
+
+        if(modeFlag == 0) // viewer mode
         {
-            var movex = (window.pageXOffset + event2.clientX - box.left)/canvas.width;
-            var movey = (window.pageYOffset + event2.clientY - box.top)/canvas.height;
-            for(index=0; index<coordList[0].length; index++)
+            var sLoc = getCenter(coordList[selectedShark])
+            if(dragging) // left mouse to drag
             {
-                coordList[selectedShark][index][0] += (movex-prevx)
-                coordList[selectedShark][index][1] -= (movey-prevy)
-            }
-            sharkLocation[selectedShark][0] += (movex-prevx)
-            sharkLocation[selectedShark][1] -= (movey-prevy)
-            rerender(true, true)
-            prevx = movex
-            prevy = movey
-        }
-        if(scaling)
-        {
-            var movex = ((window.pageXOffset + event2.clientX - box.left)/canvas.width) - .5;
-            var movey = ((window.pageYOffset + event2.clientY - box.top)/canvas.height) - .5;
-            distance = Math.sqrt(Math.pow(movex - prevx, 2) + Math.pow(movey - prevy, 2))
-            if(Math.sqrt(Math.pow(sharkLocation[selectedShark][0] - movex,2) + Math.pow(sharkLocation[selectedShark][1] - movey,2)) > Math.sqrt(Math.pow(sharkLocation[selectedShark][0] - prevx,2) + Math.pow(sharkLocation[selectedShark][1] - prevy,2)))
-                distance = -distance
-            if(distance!=0 && Math.abs(distance) < .5)
-            {
-                for(index=0; index<coordList[selectedShark].length; index++)
+                for(index=0; index<coordList[0].length; index++)
                 {
-                    coordList[selectedShark][index][0] -= sharkLocation[selectedShark][0]
-                    coordList[selectedShark][index][1] -= sharkLocation[selectedShark][1]
-                    coordList[selectedShark][index][0] *= (1 - distance)
-                    coordList[selectedShark][index][1] *= (1 - distance)
-                    coordList[selectedShark][index][2] *= (1 - distance)
-                    coordList[selectedShark][index][0] += sharkLocation[selectedShark][0]
-                    coordList[selectedShark][index][1] += sharkLocation[selectedShark][1]
+                    coordList[selectedShark][index][0] += movex
+                    coordList[selectedShark][index][1] -= movey
                 }
+                sharkLocation[selectedShark][0] += movex
+                sharkLocation[selectedShark][1] -= movey
+                rerender(true, true)
             }
-            rerender(true, true)
-            prevx = movex
-            prevy = movey
-        }
-        if(rotating)
-        {
-            var movex = ((window.pageXOffset + event2.clientX - box.left)/canvas.width);
-            var movey = ((window.pageYOffset + event2.clientY - box.top)/canvas.height);
-            var directionVector = normalize([-movex + prevx, -movey + prevy])
-            for(index=0; index<coordList[0].length; index++)
+            if(scaling) // middle mouse to scale
             {
-                coordList[selectedShark][index][0] -= sharkLocation[selectedShark][0]
-                coordList[selectedShark][index][1] -= sharkLocation[selectedShark][1]
-                coordList[selectedShark][index] = rotateZ(coordList[selectedShark][index], Math.asin(-directionVector[1]))
-                coordList[selectedShark][index] = rotateY(coordList[selectedShark][index], length([movex - prevx, movey - prevy]))
-                coordList[selectedShark][index] = rotateZ(coordList[selectedShark][index], Math.asin(directionVector[1]))
-                coordList[selectedShark][index][0] += sharkLocation[selectedShark][0]
-                coordList[selectedShark][index][1] += sharkLocation[selectedShark][1]
+                distance = Math.sqrt(Math.pow(movex, 2) + Math.pow(movey, 2))
+                if(Math.sqrt(Math.pow(sharkLocation[selectedShark][0] - event.clientX,2) + Math.pow(sharkLocation[selectedShark][1] - event.clientY,2)) > Math.sqrt(Math.pow(sharkLocation[selectedShark][0] - prevx,2) + Math.pow(sharkLocation[selectedShark][1] - prevy,2)))
+                    distance = -distance
+                if(distance!=0 && Math.abs(distance) < .5)
+                {
+                    for(index=0; index<coordList[selectedShark].length; index++)
+                    {
+                        coordList[selectedShark][index][0] -= sLoc[0]
+                        coordList[selectedShark][index][1] -= sLoc[1]
+                        coordList[selectedShark][index][0] *= (1 - distance)
+                        coordList[selectedShark][index][1] *= (1 - distance)
+                        coordList[selectedShark][index][2] *= (1 - distance)
+                        coordList[selectedShark][index][0] += sLoc[0]
+                        coordList[selectedShark][index][1] += sLoc[1]
+                    }
+                }
+                rerender(true, true)
             }
-            sharkRotation[selectedShark][0] += Math.asin(directionVector[1])
-            sharkRotation[selectedShark][1] += length([movex - prevx, movey - prevy])
-            rerender(true, true)
-            prevx = movex
-            prevy = movey
+            if(rotating) // right mouse to rotate
+            {
+                var directionVector = normalize([movex, movey])
+                for(index=0; index<coordList[0].length; index++)
+                {
+                    coordList[selectedShark][index][0] -= sLoc[0]
+                    coordList[selectedShark][index][1] -= sLoc[1]
+                    coordList[selectedShark][index] = rotateY(coordList[selectedShark][index], movex*5)
+                    coordList[selectedShark][index] = rotateX(coordList[selectedShark][index], movey*5)
+                    coordList[selectedShark][index][0] += sLoc[0]
+                    coordList[selectedShark][index][1] += sLoc[1]
+                }
+                sharkRotation[selectedShark][0] += Math.asin(directionVector[1])
+                sharkRotation[selectedShark][1] += length([movex, movey])
+                rerender(true, true)
+            }
         }
+        else // camera mode
+        {
+            if(scaling) // middle mouse to zoom
+            {
+                distance = Math.sqrt(Math.pow(movex, 2) + Math.pow(movey, 2))
+                if(Math.sqrt(Math.pow(sharkLocation[selectedShark][0] - event.clientX,2) + Math.pow(sharkLocation[selectedShark][1] - event.clientY,2)) > Math.sqrt(Math.pow(sharkLocation[selectedShark][0] - prevx,2) + Math.pow(sharkLocation[selectedShark][1] - prevy,2)))
+                    distance = -distance
+                if(distance!=0 && Math.abs(distance) < .5)
+                {
+                    for(index=0; index<coordList[selectedShark].length; index++)
+                    {
+                        coordList[selectedShark][index][0] -= sharkLocation[selectedShark][0]
+                        coordList[selectedShark][index][1] -= sharkLocation[selectedShark][1]
+                        coordList[selectedShark][index][0] *= (1 - distance)
+                        coordList[selectedShark][index][1] *= (1 - distance)
+                        coordList[selectedShark][index][2] *= (1 - distance)
+                        coordList[selectedShark][index][0] += sharkLocation[selectedShark][0]
+                        coordList[selectedShark][index][1] += sharkLocation[selectedShark][1]
+                    }
+                }
+                rerender(true, true)
+            }
+        }
+        prevx = event.clientX
+        prevy = event.clientY
     });
     canvas.addEventListener("mouseup", function(event3){
         dragging = false
         scaling = false
         rotating = false
+    });
+    window.addEventListener("keydown", function(event)
+    {
+        if(event.keyCode === 80) // press P to examine
+            examine();
+        if(event.keyCode === 67) // press C for camera mode
+            modeFlag = 1
+        if(event.keyCode === 86) // press V for viewer mode
+            modeFlag = 0
     });
 } // main
 
@@ -284,6 +313,53 @@ window.onload = function init() {
 
 
 
+function examine()
+{
+
+}
+
+function getCenter(pointList)
+{
+    var temp = [0,0,0]
+    for(var i=0; i<pointList.length; i++)
+    {
+        temp[0]+=pointList[i][0]
+        temp[1]+=pointList[i][1]
+        temp[2]+=pointList[i][2]
+    }
+    temp[0] /= pointList.length
+    temp[1] /= pointList.length
+    temp[2] /= pointList.length
+
+    return temp
+}
+
+function getDistance(point)
+{
+    var test = [0,0,startDistance]
+    var sum = 0
+    for(var i=0; i<point.length; i++)
+    {
+        sum+=Math.pow(point[i] - playerPosition[i], 2)
+    }
+    return Math.sqrt(sum)
+}
+
+function translate(point, translation)
+{
+    output = []
+    for(i=0; i<point.length; i++)
+        output.push(point[i] + translation[i])
+    return output
+}
+
+function scale(point, factor)
+{
+    var output = []
+    for(var i=0; i<3; i++)
+        output.push(point[i] * factor)
+    return output
+}
 
 function rotateX(point, angle)
 {
