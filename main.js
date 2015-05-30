@@ -46,7 +46,7 @@ var sz = 200;
 var canvas;
 var gl;
 
-
+var examineInterval
 
 var maxNumVertices  = 1044484;
 var index = 0;
@@ -267,6 +267,17 @@ window.onload = function init() {
         }
         else // camera mode
         {
+            if(dragging) // left mouse to pan
+            {
+                for(index=0; index<coordList[0].length; index++)
+                {
+                    coordList[0][index][0] -= movex
+                    coordList[0][index][1] += movey
+                    coordList[1][index][0] -= movex
+                    coordList[1][index][1] += movey
+                }
+                rerender(true, true)
+            }
             if(scaling) // middle mouse to zoom
             {
                 distance = Math.sqrt(Math.pow(movex, 2) + Math.pow(movey, 2))
@@ -276,13 +287,12 @@ window.onload = function init() {
                 {
                     for(index=0; index<coordList[selectedShark].length; index++)
                     {
-                        coordList[selectedShark][index][0] -= sharkLocation[selectedShark][0]
-                        coordList[selectedShark][index][1] -= sharkLocation[selectedShark][1]
-                        coordList[selectedShark][index][0] *= (1 - distance)
-                        coordList[selectedShark][index][1] *= (1 - distance)
-                        coordList[selectedShark][index][2] *= (1 - distance)
-                        coordList[selectedShark][index][0] += sharkLocation[selectedShark][0]
-                        coordList[selectedShark][index][1] += sharkLocation[selectedShark][1]
+                        coordList[0][index][0] *= (1 - distance)
+                        coordList[0][index][1] *= (1 - distance)
+                        coordList[0][index][2] *= (1 - distance)
+                        coordList[1][index][0] *= (1 - distance)
+                        coordList[1][index][1] *= (1 - distance)
+                        coordList[1][index][2] *= (1 - distance)
                     }
                 }
                 rerender(true, true)
@@ -299,11 +309,20 @@ window.onload = function init() {
     window.addEventListener("keydown", function(event)
     {
         if(event.keyCode === 80) // press P to examine
-            examine();
+        {   
+            examineInterval = setInterval(examine(), 100)
+        }
+        if(event.keyCode === 81) // press Q to look around
+            lookAround();
         if(event.keyCode === 67) // press C for camera mode
             modeFlag = 1
         if(event.keyCode === 86) // press V for viewer mode
             modeFlag = 0
+    });
+    window.addEventListener("keyup", function(event)
+    {
+        if(event.keyCode === 80)
+            window.clearInterval(examineInterval)
     });
 } // main
 
@@ -315,7 +334,17 @@ window.onload = function init() {
 
 function examine()
 {
+    for(index=0; index<coordList[0].length; index++)
+    {
+        coordList[0][index] = rotateY(coordList[0][index], Math.PI/36)
+        coordList[1][index] = rotateY(coordList[1][index], Math.PI/36)
+    }
+    rerender(true, true)
+}
 
+function lookAround()
+{
+    alert()
 }
 
 function getCenter(pointList)
